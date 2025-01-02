@@ -102,7 +102,7 @@ const QuizeUserModel = sequelize.define('quizusers', {
           },
           notNull: { msg: "Account type is required" },
           isValidAccountType(value) {
-            if (!["User", "Worker"].includes(value)) {
+            if (!["User", "Teacher"].includes(value)) {
               throw new ApiError(400, "Invalid account type specified.");
             }
           },
@@ -113,7 +113,7 @@ const QuizeUserModel = sequelize.define('quizusers', {
       allowNull: true,
     },
     phone: {
-      type: DataTypes.NUMBER,
+      type: DataTypes.STRING,
       allowNull: true,
     },
   }, {

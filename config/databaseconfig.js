@@ -1,4 +1,3 @@
-
 import pg from "pg"
 import { Sequelize } from 'sequelize';
 import ServerConfig from './ServerConfig.js';
@@ -23,7 +22,7 @@ const sequelize = new Sequelize(ServerConfig.DB_NAME, ServerConfig.DB_USER, Serv
         console.log('All models were synchronized successfully.');
 
     } catch (error) {
-        console.error('Unable to connect to the database:', error);
+        console.log('Unable to connect to the database:', error);
     }
 };
 

@@ -69,10 +69,10 @@ export const authMiddleware = async (req, res, next) => {
   }
 };
 
-// Helper function to require specific role for certain routes
+
 export const requireRole = (role) => {
   return (req, res, next) => {
-    req.requiredRole = role; // Set the required role in the request
+    req.requiredRole = role; 
     next();
   };
 };

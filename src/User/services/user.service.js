@@ -55,6 +55,7 @@ class UserService {
             return {user2,accessToken};
 
         } catch (error) {
+            // console.log(error)
             throw error;  
         }
     }
