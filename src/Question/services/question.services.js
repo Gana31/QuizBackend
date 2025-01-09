@@ -1,95 +1,174 @@
+import mongoose from "mongoose";
 import { ApiError } from "../../../utils/ApiError.js";
 import QuestionRepository from "../repository/question.repository.js";
-import { TopicModel, CategoryModel, QuestionModel, QuestionOptionModel } from "../../dbrelation.js";
+import QuizRepository from "../repository/quiz.repository.js";
+import TopicRepository from "../repository/topic.repository.js";
 
+const quizRepository = new QuizRepository();
+const topicRepository = new TopicRepository();
 const questionRepository = new QuestionRepository();
 
-class QuestionService {
-    async createQuestion(data, user) {
-        const topic = await TopicModel.findByPk(data.topic_id, {
-            include: [{ model: CategoryModel, as: "category" }]
-        });
-        if (!topic) {
-            throw new ApiError(404, "Topic not found");
+class QuizService {
+    async createQuiz(data, user) {
+        try {
+            data.createdBy = user.id;
+            return await quizRepository.create(data);
+        } catch (error) {
+            throw error;
         }
-        if (topic.created_by !== user.id) {
-            throw new ApiError(403, "You can only create questions for topics you own");
-        }
-
-        data.created_by = user.id;
-        const question = await questionRepository.create(data);
-
-        if (data.options) {
-            const options = data.options.map(option => ({ ...option, question_id: question.id }));
-            await QuestionOptionModel.bulkCreate(options);
-        }
-
-        return questionRepository.findWithOptions(question.id);
     }
 
-    async getQuestionsByTopic(topicId, user) {
-        const topic = await TopicModel.findByPk(topicId, {
-            include: [{ model: CategoryModel, as: "category" }]
-        });
-        if (!topic || topic.created_by !== user.id) {
-            throw new ApiError(403, "You can only view questions for topics you own");
-        }
+    async updateQuiz(quizId, data, user) {
+        try {
+            const quiz = await quizRepository.findById(quizId);
+            if (!quiz || quiz.createdBy.toString() !== user.id.toString()) {
+                throw new ApiError(403, 'Unauthorized or Quiz not found');
+            }
 
-        return await questionRepository.findByTopicId(topicId, {
-            include: [{ model: QuestionOptionModel, as: "options" }]
-        });
+            // Update quiz fields
+            Object.assign(quiz, data);
+            return await quizRepository.update(quizId, quiz);
+        } catch (error) {
+            throw error;
+        }
     }
 
-    async updateQuestion(id, data, user) {
-        const question = await questionRepository.findById(id);
-        if (question.created_by !== user.id) {
-            throw new ApiError(403, "You can only update questions you created");
-        }
+    async deleteQuiz(quizId, user) {
+        try {
+            const quiz = await quizRepository.findById(quizId);
+            if (!quiz || quiz.createdBy.toString() !== user.id.toString()) {
+                throw new ApiError(403, 'Unauthorized or Quiz not found');
+            }
 
-        if (data.options) {
-            await QuestionOptionModel.destroy({ where: { question_id: id } });
-            const options = data.options.map(option => ({ ...option, question_id: id }));
-            await QuestionOptionModel.bulkCreate(options);
+            await topicRepository.deleteByQuizId(quizId);
+            await quizRepository.delete(quizId);
+        } catch (error) {
+            throw error;
         }
-
-        return await questionRepository.update(id, data);
     }
 
-    async deleteQuestion(id, user) {
-        const question = await questionRepository.findById(id);
-        if (question.created_by !== user.id) {
-            throw new ApiError(403, "You can only delete questions you created");
-        }
-
-        return await questionRepository.delete(id);
-    }
-
-    async getQuizData(user) {
-        // Get all categories with topics and questions
-        const categories = await CategoryModel.findAll({
-            include: [
-                {
-                    model: TopicModel,
-                    as: 'topics',
-                    include: [
-                        {
-                            model: QuestionModel,
-                            as: 'questions',
-                            include: [
-                                {
-                                    model: QuestionOptionModel,
-                                    as: 'options'
-                                }
-                            ]
-                        }
-                    ]
-                }
-            ]
-        });
+    async createTopic(data, user) {
+        try {
+            const quiz = await quizRepository.findById(data.quizId);
+            // console.log(quiz, user);
     
-        // Filter out categories and topics that don't belong to the user (if needed)
-        return categories;
+            if (!quiz || !quiz.createdBy.equals(user.id)) {
+                throw new ApiError(403, 'Unauthorized or Quiz not found');
+            }
+    
+            data.createdBy = user.id;
+            return await topicRepository.create(data);
+        } catch (error) {
+            throw error;
+        }
     }
+    
+
+    async updateTopic(topicId, data, user) {
+        try {
+            const topic = await topicRepository.findById(topicId);
+            if (!topic || !topic.createdBy.equals(user.id)) {
+                throw new ApiError(403, 'Unauthorized or Topic not found');
+            }
+    
+            // Update topic fields
+            Object.assign(topic, data);
+            return await topicRepository.update(topicId, topic);
+        } catch (error) {
+            console.log(error);
+            throw error;
+        }
+    }
+    
+
+    async deleteTopic(topicId, user) {
+        try {
+            const topic = await topicRepository.findById(topicId);
+            if (!topic || !topic.createdBy.equals(user.id)) {
+                throw new ApiError(403, 'Unauthorized or Topic not found');
+            }
+
+            await questionRepository.deleteByTopicId(topicId);
+            await topicRepository.delete(topicId);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async createQuestion(data, user) {
+        try {
+        
+            const topic = await topicRepository.findById(data.topicId);
+            if (!topic || !topic.createdBy.equals(user.id)) {
+                throw new ApiError(403, 'Unauthorized or Topic not found');
+            }
+
+            data.createdBy = user.id;
+            return await questionRepository.create(data);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async updateQuestion(questionId, data, user) {
+        try {
+            const question = await questionRepository.findById(questionId);
+            if (!question || !question.createdBy.equals(user.id)) {
+                throw new ApiError(403, 'Unauthorized or Question not found');
+            }
+
+            // Update question fields
+            Object.assign(question, data);
+            return await questionRepository.update(questionId, question);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async deleteQuestion(questionId, user) {
+        try {
+            const question = await questionRepository.findById(questionId);
+            if (!question || !question.createdBy.equals(user.id)) {
+                throw new ApiError(403, 'Unauthorized or Question not found');
+            }
+
+            await questionRepository.delete(questionId);
+        } catch (error) {
+            throw error;
+        }
+    }
+
+    async getUserPreviousQuizzes(user) {
+        try {
+            const userId = user.id instanceof mongoose.Types.ObjectId ? user.id : mongoose.Types.ObjectId(user.id); // Ensure it's an ObjectId
+    
+            // console.log('Fetching quizzes for user with ID:', userId);
+    
+            // Fetch quizzes created by the user
+            const quizzes = await quizRepository.findAllWithPopulate({ createdBy: userId });
+    
+            // Loop through each quiz to fetch topics and questions manually
+            for (let quiz of quizzes) {
+                // Fetch topics for each quiz by quizId
+                const topics = await topicRepository.findByQuizId(quiz._id);
+                
+                // Loop through each topic to fetch questions by topicId
+                for (let topic of topics) {
+                    const questions = await questionRepository.findByTopicId(topic._id);
+                    topic.questions = questions; // Attach questions to topic
+                }
+    
+                quiz.topics = topics; // Attach topics to quiz
+            }
+    
+            // console.log('Fetched quizzes with topics and questions:', quizzes); // Check the output
+            return quizzes;
+        } catch (error) {
+            console.error('Error fetching quizzes:', error);
+            throw error;
+        }
+    }
+    
 }
 
-export default new QuestionService();
+export default new QuizService();

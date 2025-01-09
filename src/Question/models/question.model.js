@@ -1,53 +1,46 @@
-import { DataTypes } from "sequelize";
-import { sequelize } from "../../../config/databaseconfig.js";
+import mongoose from "mongoose";
 
-const QuestionModel = sequelize.define("questions", {
-  id: {
-    type: DataTypes.UUID,
-    defaultValue: DataTypes.UUIDV4,
-    primaryKey: true,
-    allowNull: false,
-  },
-  text: {
-    type: DataTypes.TEXT,
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: "Question text cannot be empty" },
-      notNull: { msg: "Question text is required" },
+const QuestionSchema = new mongoose.Schema(
+  {
+    title: {
+      type: String,
+      required: [true, 'Question text is required'],
+    },
+    options: [
+      {
+        type: String,
+        required: true,
+      },
+    ],
+    correctAnswer: {
+      type: String,
+      required: [true, 'Answer is required'],
+    },
+    explanationLink: {
+      type: String,
+      default: null,
+    },
+    topicId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Topic',
+      required: true,
+    },
+    createdBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'QuizeUser',
+      required: true,
+    },
+    selectedSets: {
+      type: [String], // This will store an array of set names like ['A', 'B']
+      default: [], // Default to an empty array
     },
   },
-  type: {
-    type: DataTypes.ENUM("text_mcq", "image_mcq"),
-    allowNull: false,
-    validate: {
-      isIn: [["text_mcq", "image_mcq"]],
-      notNull: { msg: "Question type is required" },
-    },
-  },
-  correct_option_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: "Correct option ID cannot be empty" },
-      notNull: { msg: "Correct option ID is required" },
-    },
-  },
-  topic_id: {
-    type: DataTypes.UUID,
-    allowNull: false,
-  },
-  created_by: {
-    type: DataTypes.UUID,
-    allowNull: false,
-    validate: {
-      notEmpty: { msg: "Creator ID cannot be empty" },
-      notNull: { msg: "Creator ID is required" },
-    },
-  },
-}, {
-  tableName: "questions",
-  timestamps: true,
-  underscored: true,
-});
+  {
+    timestamps: true,
+    versionKey: false,
+  }
+);
+
+const QuestionModel = mongoose.model('Question', QuestionSchema);
 
 export default QuestionModel;

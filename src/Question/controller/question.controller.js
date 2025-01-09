@@ -1,14 +1,108 @@
 import { ApiResponse } from "../../../utils/ApiResponse.js";
 import { asyncHandler } from "../../../utils/asynchandler.js";
-import QuestionServices from "../services/question.services.js";
-
+import QuizService from "../services/question.services.js";
+import { ApiError } from "../../../utils/ApiError.js";
 
 class QuestionController {
+    // Quiz CRUD Methods
+    createQuiz = asyncHandler(async (req, res, next) => {
+        const user = req.user;
+        const quizData = req.body;
+        // Validate input
+       
+        if (!quizData.name) throw new ApiError(400, "Quiz title is required");
+
+        const newQuiz = await QuizService.createQuiz(quizData, user);
+        res.status(201).json(new ApiResponse(201, "Quiz created successfully", newQuiz));
+    });
+
+    getAllQuizzes = asyncHandler(async (req, res, next) => {
+        const user = req.user;
+        const quizzes = await QuizService.getUserPreviousQuizzes(user);
+        res.status(200).json(new ApiResponse(200, "Quizzes fetched successfully", quizzes));
+    });
+
+    updateQuiz = asyncHandler(async (req, res, next) => {
+        const { quizId } = req.params;
+        const user = req.user;
+        const quizData = req.body;
+        // Validate input
+        if (!quizData.name) throw new ApiError(400, "Quiz title is required");
+
+        const updatedQuiz = await QuizService.updateQuiz(quizId, quizData, user);
+        res.status(200).json(new ApiResponse(200, "Quiz updated successfully", updatedQuiz));
+    });
+
+    deleteQuiz = asyncHandler(async (req, res, next) => {
+        const { quizId } = req.params;
+        const user = req.user;
+
+        // Validate input
+        if (!quizId) throw new ApiError(400, "Quiz ID is required");
+
+        await QuizService.deleteQuiz(quizId, user);
+        res.status(200).json(new ApiResponse(200, "Quiz deleted successfully"));
+    });
+
+    // Topic CRUD Methods
+    createTopic = asyncHandler(async (req, res, next) => {
+        const user = req.user;
+        const topicData = req.body;
+
+        // Validate input
+        // console.log(req.body)
+        if (!topicData.title) throw new ApiError(400, "Topic title is required");
+        if (!topicData.quizId) throw new ApiError(400, "Quiz ID is required");
+
+        const newTopic = await QuizService.createTopic(topicData, user);
+        res.status(201).json(new ApiResponse(201, "Topic created successfully", newTopic));
+        
+    });
+
+    getTopicsByQuiz = asyncHandler(async (req, res, next) => {
+        const { quizId } = req.params;
+        const user = req.user;
+
+        // Validate input
+        if (!quizId) throw new ApiError(400, "Quiz ID is required");
+
+        const topics = await QuizService.getTopicsByQuiz(quizId, user);
+        res.status(200).json(new ApiResponse(200, "Topics fetched successfully", topics));
+    });
+
+    updateTopic = asyncHandler(async (req, res, next) => {
+        const { topicId } = req.params;
+        const user = req.user;
+        const topicData = req.body;
+
+        // Validate input
+        if (!topicData.title) throw new ApiError(400, "Topic title is required");
+
+        const updatedTopic = await QuizService.updateTopic(topicId, topicData, user);
+        res.status(200).json(new ApiResponse(200, "Topic updated successfully", updatedTopic));
+    });
+
+    deleteTopic = asyncHandler(async (req, res, next) => {
+        const { topicId } = req.params;
+        const user = req.user;
+
+        // Validate input
+        if (!topicId) throw new ApiError(400, "Topic ID is required");
+
+        await QuizService.deleteTopic(topicId, user);
+        res.status(200).json(new ApiResponse(200, "Topic deleted successfully"));
+    });
+
+    // Question CRUD Methods
     createQuestion = asyncHandler(async (req, res, next) => {
         const user = req.user;
         const questionData = req.body;
+                console.log(req.body)
+        // Validate input
+        if (!questionData.title) throw new ApiError(400, "Question text is required");
+        if (!questionData.topicId) throw new ApiError(400, "Topic ID is required");
 
-        const newQuestion = await QuestionServices.createQuestion(questionData, user);
+        const newQuestion = await QuizService.createQuestion(questionData, user);
         res.status(201).json(new ApiResponse(201, "Question created successfully", newQuestion));
     });
 
@@ -16,7 +110,10 @@ class QuestionController {
         const { topicId } = req.params;
         const user = req.user;
 
-        const questions = await QuestionServices.getQuestionsByTopic(topicId, user);
+        // Validate input
+        if (!topicId) throw new ApiError(400, "Topic ID is required");
+
+        const questions = await QuizService.getQuestionsByTopic(topicId, user);
         res.status(200).json(new ApiResponse(200, "Questions fetched successfully", questions));
     });
 
@@ -25,23 +122,30 @@ class QuestionController {
         const user = req.user;
         const questionData = req.body;
 
-        const updatedQuestion = await QuestionServices.updateQuestion(id, questionData, user);
+        // Validate input
+        if (!questionData.title) throw new ApiError(400, "Question title is required");
+
+        const updatedQuestion = await QuizService.updateQuestion(id, questionData, user);
         res.status(200).json(new ApiResponse(200, "Question updated successfully", updatedQuestion));
     });
 
     deleteQuestion = asyncHandler(async (req, res, next) => {
-        const { id } = req.params;
+        const { questionId } = req.params;
         const user = req.user;
 
-        await QuestionServices.deleteQuestion(id, user);
+        // Validate input
+        if (!questionId) throw new ApiError(400, "Question ID is required");
+
+        await QuizService.deleteQuestion(questionId, user);
         res.status(200).json(new ApiResponse(200, "Question deleted successfully"));
     });
 
-    getQuizData = asyncHandler(async (req, res, next) => {
-        const user = req.user; // Assuming you have the user in req.user
-        const quizData = await QuestionServices.getQuizData(user);
-    
-        res.status(200).json(new ApiResponse(200, "Quiz data fetched successfully", quizData));
+    // Get All Previous Quizzes
+    getUserPreviousQuizzes = asyncHandler(async (req, res, next) => {
+        const user = req.user;
+
+        const quizzes = await QuizService.getUserPreviousQuizzes(user);
+        res.status(200).json(new ApiResponse(200, "Previous quizzes fetched successfully", quizzes));
     });
 }
 

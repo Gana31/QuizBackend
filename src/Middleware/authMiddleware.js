@@ -4,15 +4,22 @@ import { ApiError } from "../../utils/ApiError.js";
 import { generateTokensAndSetCookies } from "../../utils/jwtCookie.js";
 import { QuizeUserModel } from "../User/index.js";
 
-
 export const authMiddleware = async (req, res, next) => {
   try {
     const { accessToken, refreshToken } = req.cookies;
 
     if (accessToken) {
       try {
+        // Verify the access token
         const decoded = jwt.verify(accessToken, ServerConfig.ACCESS_TOKEN_SECRET);
-        req.user = { id: decoded.userId, role: decoded.role }; // Store role in req.user
+
+        // Fetch the user by userId from the decoded JWT
+        const user = await QuizeUserModel.findById(decoded.userId); // MongoDB equivalent of findOne by ID
+        if (!user) {
+          throw new ApiError(401, "User not found");
+        }
+
+        req.user = { id: user._id, role: user.account_type }; // Store user info and role
 
         // Check for the specific role required to access the route
         if (req.requiredRole && req.user.role !== req.requiredRole) {
@@ -21,10 +28,6 @@ export const authMiddleware = async (req, res, next) => {
 
         // If no refreshToken and access token is valid, move to the next middleware
         if (!refreshToken) {
-          const user = await QuizeUserModel.findOne({ where: { id: decoded.userId } });
-          if (!user) {
-            throw new ApiError(401, "User not found");
-          }
           generateTokensAndSetCookies(user, res); // Set a new access token
         }
 
@@ -39,7 +42,8 @@ export const authMiddleware = async (req, res, next) => {
       try {
         const decoded = jwt.verify(refreshToken, ServerConfig.REFRESH_TOKEN_SECRET);
 
-        const user = await QuizeUserModel.findOne({ where: { id: decoded.userId } });
+        // Fetch the user by userId from the decoded JWT
+        const user = await QuizeUserModel.findById(decoded.userId);
         if (!user) {
           res.clearCookie('accessToken');
           res.clearCookie('refreshToken');
@@ -47,7 +51,7 @@ export const authMiddleware = async (req, res, next) => {
         }
 
         generateTokensAndSetCookies(user, res);
-        req.user = { id: user.id, role: decoded.role }; // Store user and role in req.user
+        req.user = { id: user._id, role: user.account_type }; // Store user info and role
 
         // Check for the specific role required to access the route
         if (req.requiredRole && req.user.role !== req.requiredRole) {
@@ -69,10 +73,10 @@ export const authMiddleware = async (req, res, next) => {
   }
 };
 
-
+// Role requirement middleware
 export const requireRole = (role) => {
   return (req, res, next) => {
-    req.requiredRole = role; 
+    req.requiredRole = role;
     next();
   };
 };

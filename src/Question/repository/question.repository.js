@@ -1,20 +1,22 @@
 import CrudRepository from "../../../utils/crudClass.js";
-import { QuestionModel, QuestionOptionModel, TopicModel, CategoryModel } from "../../dbrelation.js";
+import QuestionModel from "../models/question.model.js";
+
 
 class QuestionRepository extends CrudRepository {
-    constructor() {
-        super(QuestionModel);
-    }
+  constructor() {
+    super(QuestionModel);
+  }
 
-    async findByTopicId(topicId, options = {}) {
-        return await this.model.findAll({ where: { topic_id: topicId }, ...options });
+  async deleteByTopicId(topicId) {
+    return await this.model.deleteMany({ topicId });
+  }
+  async findByTopicId(topicId) {
+    try {
+        return await QuestionModel.find({ topicId }).exec();
+    } catch (error) {
+        throw error;
     }
-
-    async findWithOptions(questionId) {
-        return await this.model.findByPk(questionId, {
-            include: [{ model: QuestionOptionModel, as: "options" }]
-        });
-    }
+}
 }
 
 export default QuestionRepository;

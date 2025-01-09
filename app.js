@@ -4,8 +4,8 @@ import cookieParser from 'cookie-parser';
 import cors from 'cors'
 import ErrorHandler from './utils/ErrorHandler.js';
 import { userRouter } from './src/User/index.js';
-import { categoryRoutes } from './src/Question/index.js';
-import questionRoutes from './src/Question/Routes/questio.routes.js';
+import { questionRoutes } from './src/Question/index.js';
+
 
 
 const app = express();
@@ -19,7 +19,7 @@ app.use(cors({
     credentials : true,
 }));
 app.use(cookieParser());
-app.use("/api/v1",userRouter,categoryRoutes,questionRoutes);
+app.use("/api/v1",userRouter,questionRoutes);
 
 app.get("/",(req,res)=>{
 return res.status(200).json({message : "Your APi is Running "})
