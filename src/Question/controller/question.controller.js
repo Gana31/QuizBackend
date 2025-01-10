@@ -97,7 +97,7 @@ class QuestionController {
     createQuestion = asyncHandler(async (req, res, next) => {
         const user = req.user;
         const questionData = req.body;
-                console.log(req.body)
+                // console.log(req.body)
         // Validate input
         if (!questionData.title) throw new ApiError(400, "Question text is required");
         if (!questionData.topicId) throw new ApiError(400, "Topic ID is required");
@@ -147,6 +147,15 @@ class QuestionController {
         const quizzes = await QuizService.getUserPreviousQuizzes(user);
         res.status(200).json(new ApiResponse(200, "Previous quizzes fetched successfully", quizzes));
     });
+
+    async getUpcomingQuizzes(req, res, next) {
+        try {
+            const quizzes = await QuizService.getUpcomingQuizzes(); // Call service to fetch upcoming quizzes
+            return res.status(200).json(new ApiResponse(200, "Upcoming quizzes fetched successfully", quizzes));
+        } catch (error) {
+            return next(new ApiError(500, "Error fetching upcoming quizzes", error));
+        }
+    }
 }
 
 export default new QuestionController();

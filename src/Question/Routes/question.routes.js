@@ -25,4 +25,6 @@ questionRoutes.delete('/deleteQuestion/:questionId', authMiddleware, QuestionCon
 // Get All Previous Quizzes
 questionRoutes.get('/getUserPreviousQuizzes', authMiddleware, QuestionController.getUserPreviousQuizzes); // Get all previous quizzes
 
+questionRoutes.get('/getUpcomingQuizzes', QuestionController.getUpcomingQuizzes);
+
 export default questionRoutes;

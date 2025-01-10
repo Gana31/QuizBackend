@@ -50,18 +50,27 @@ class QuizService {
     async createTopic(data, user) {
         try {
             const quiz = await quizRepository.findById(data.quizId);
-            // console.log(quiz, user);
-    
+            
             if (!quiz || !quiz.createdBy.equals(user.id)) {
                 throw new ApiError(403, 'Unauthorized or Quiz not found');
             }
     
+            // Create the topic
             data.createdBy = user.id;
-            return await topicRepository.create(data);
+            const newTopic = await topicRepository.create(data);
+    
+            // Add the topic ID to the quiz
+            quiz.topics.push(newTopic._id);
+    
+            // Save the updated quiz
+            await quiz.save();
+    
+            return newTopic; // Return the created topic
         } catch (error) {
             throw error;
         }
     }
+    
     
 
     async updateTopic(topicId, data, user) {
@@ -97,18 +106,25 @@ class QuizService {
 
     async createQuestion(data, user) {
         try {
-        
             const topic = await topicRepository.findById(data.topicId);
             if (!topic || !topic.createdBy.equals(user.id)) {
                 throw new ApiError(403, 'Unauthorized or Topic not found');
             }
-
+    
             data.createdBy = user.id;
-            return await questionRepository.create(data);
+    
+            const newQuestion = await questionRepository.create(data);
+    
+            topic.questions.push(newQuestion._id);
+            
+            await topic.save();
+    
+            return newQuestion; 
         } catch (error) {
             throw error;
         }
     }
+    
 
     async updateQuestion(questionId, data, user) {
         try {
@@ -168,7 +184,101 @@ class QuizService {
             throw error;
         }
     }
+
+    async getUpcomingQuizzes() {
+        try {
+            // Get the current date and time for filtering future quizzes
+            const currentDate = new Date();
+    
+            // Fetch quizzes with future start times
+            const quizzes = await quizRepository.findAllWithPopulate({
+                startTime: { $gt: currentDate },
+            });
+    
+            const upcomingQuizzes = [];
+    
+            for (let quiz of quizzes) {
+                // Extract and format the date from startTime
+                const quizDate = formatDate(quiz.startTime);
+    
+                const quizDetails = {
+                    id: quiz._id,
+                    title: quiz.name,
+                    description: quiz.description,
+                    // Format the start and end time to "HH:mm AM/PM"
+                    timing: `${formatTime(quiz.startTime)} - ${formatTime(quiz.endTime)}`,
+                    date: quizDate, // Add the formatted date here
+                    totalMarks: 0,  // Initialize total marks
+                    topics: [], // Initialize topics as an array of topic names
+                };
+    
+                let isValidQuiz = true;
+    
+                // Check if quiz has topics, if not skip it
+                if (quiz.topics.length === 0) {
+                    continue; // Skip this quiz as it doesn't have any topics
+                }
+    
+                // Loop through each topic in the quiz
+                for (let topicId of quiz.topics) {
+                    const topic = await topicRepository.findById(topicId);
+    
+                    // Get the number of questions created in the topic
+                    const questions = await questionRepository.findByTopicId(topic._id);
+    
+                    // Check if the number of questions meets the maximum allowed
+                    const requiredQuestions = topic.maxQuestions;
+    
+                    // If the topic doesn't have enough questions, don't include the quiz
+                    if (questions.length < requiredQuestions) {
+                        isValidQuiz = false;
+                        break;
+                    }
+    
+                    // Add the topic name to the topics array
+                    quizDetails.topics.push(topic.title);
+    
+                    // Add the topic's total marks to the quiz's total marks
+                    quizDetails.totalMarks += topic.totalMarks;
+                }
+    
+                // Only add the quiz to the result if it's valid
+                if (isValidQuiz) {
+                    upcomingQuizzes.push({
+                        id: quizDetails.id,
+                        title: quizDetails.title,
+                        description: quizDetails.description,
+                        timing: quizDetails.timing,
+                        date: quizDetails.date, // Include the date field
+                        totalMarks: quizDetails.totalMarks,
+                        topics: quizDetails.topics,
+                    });
+                }
+            }
+    
+            return upcomingQuizzes;
+        } catch (error) {
+            throw new ApiError(500, "Error fetching upcoming quizzes", error);
+        }
+    }
+    
+  
+    
+    
     
 }
+
+  // Helper function to format the time as HH:mm AM/PM
+  function formatTime(date) {
+    const options = { hour: '2-digit', minute: '2-digit', hour12: true };
+    return new Date(date).toLocaleString('en-US', options).replace(',', ''); // Format to "HH:mm AM/PM"
+}
+
+// Helper function to format the date as YYYY-MM-DD
+function formatDate(date) {
+    const options = { year: 'numeric', month: '2-digit', day: '2-digit' };
+    return new Date(date).toLocaleDateString('en-US', options); // Format to "YYYY-MM-DD"
+}
+
 
 export default new QuizService();
