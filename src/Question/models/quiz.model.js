@@ -22,6 +22,12 @@ const QuizSchema = new mongoose.Schema(
       ref: 'QuizeUser', // Reference the user model
       required: true,
     },
+    enrolledUsers: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'QuizeUser', // Reference the user model
+      },
+    ],
     startTime: {
       type: Date,
       required: [true, 'Start time is required'],

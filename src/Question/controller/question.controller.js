@@ -150,12 +150,37 @@ class QuestionController {
 
     async getUpcomingQuizzes(req, res, next) {
         try {
-            const quizzes = await QuizService.getUpcomingQuizzes(); // Call service to fetch upcoming quizzes
+            const user = req.user; 
+            const quizzes = await QuizService.getUpcomingQuizzes(user); // Call service to fetch upcoming quizzes
             return res.status(200).json(new ApiResponse(200, "Upcoming quizzes fetched successfully", quizzes));
         } catch (error) {
             return next(new ApiError(500, "Error fetching upcoming quizzes", error));
         }
     }
+
+    async getLiveQuizzes(req, res, next) {
+        try {
+            const user = req.user; // Get the logged-in user
+            const liveQuizzes = await QuizService.getLiveQuizzes(user); // Call service to fetch live quizzes
+    
+            
+            return res.status(200).json(new ApiResponse(200, "Live quizzes fetched successfully", liveQuizzes));
+        } catch (error) {
+            return next(new ApiError(500, "Error fetching live quizzes", error));
+        }
+    }
+
+    enrollUser = asyncHandler(async (req, res, next) => {
+        const { quizId } = req.params;
+        const user = req.user; // Assume `req.user` contains authenticated user details
+    
+        if (!quizId) throw new ApiError(400, "Quiz ID is required");
+            console.log(user)
+        const enrolledQuiz = await QuizService.enrollUser(quizId, user);
+        res
+          .status(200)
+          .json(new ApiResponse(200, "User enrolled successfully", enrolledQuiz));
+      });
 }
 
 export default new QuestionController();

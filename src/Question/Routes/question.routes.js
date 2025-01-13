@@ -25,6 +25,10 @@ questionRoutes.delete('/deleteQuestion/:questionId', authMiddleware, QuestionCon
 // Get All Previous Quizzes
 questionRoutes.get('/getUserPreviousQuizzes', authMiddleware, QuestionController.getUserPreviousQuizzes); // Get all previous quizzes
 
-questionRoutes.get('/getUpcomingQuizzes', QuestionController.getUpcomingQuizzes);
+questionRoutes.get('/getUpcomingQuizzes', authMiddleware, QuestionController.getUpcomingQuizzes);
+
+questionRoutes.post('/enroll/:quizId', authMiddleware, QuestionController.enrollUser);
+
+questionRoutes.get('/live-quizzes', authMiddleware, QuestionController.getLiveQuizzes);
 
 export default questionRoutes;

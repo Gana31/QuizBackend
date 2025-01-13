@@ -17,6 +17,18 @@ class QuizRepository extends CrudRepository {
       throw error;
     }
   }
+
+  async enrollUser(quizId, userId) {
+    try {
+      return await QuizModel.findByIdAndUpdate(
+        quizId,
+        { $addToSet: { enrolledUsers: userId } }, // Prevent duplicate enrollments
+        { new: true }
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
 }
 
 export default QuizRepository;

@@ -185,7 +185,7 @@ class QuizService {
         }
     }
 
-    async getUpcomingQuizzes() {
+    async getUpcomingQuizzes(user) {
         try {
             // Get the current date and time for filtering future quizzes
             const currentDate = new Date();
@@ -198,6 +198,11 @@ class QuizService {
             const upcomingQuizzes = [];
     
             for (let quiz of quizzes) {
+                // Skip the quiz if the user is already enrolled
+                if (quiz.enrolledUsers.includes(user.id)) {
+                    continue; // User already registered, skip this quiz
+                }
+    
                 // Extract and format the date from startTime
                 const quizDate = formatDate(quiz.startTime);
     
@@ -261,6 +266,157 @@ class QuizService {
             throw new ApiError(500, "Error fetching upcoming quizzes", error);
         }
     }
+    
+
+    async getLiveQuizzes(user) {
+        try {
+          const currentDate = new Date();
+          const ObjectId = mongoose.Types.ObjectId;
+          const userId = new ObjectId(user.id); // Convert user.id to ObjectId if necessary
+      
+        //   console.log("User ID:", userId); // Log userId to verify
+      
+          // Fetch all quizzes that have started (live quizzes)
+          const quizzes = await quizRepository.findAllWithPopulate({
+            startTime: { $gte: currentDate }, // Fetch quizzes that have started
+          });
+      
+          // Filter quizzes where the user is enrolled
+          const liveQuizzes = quizzes.filter(quiz =>
+            quiz.enrolledUsers.some(enrolledUser => enrolledUser.toString() === userId.toString())
+          );
+      
+        //   console.log(liveQuizzes)
+          // Initialize an array to hold the live quizzes that pass validation
+          const validLiveQuizzes = [];
+      
+          for (let quiz of liveQuizzes) {
+            const quizDate = formatDate(quiz.startTime);
+      
+            const quizDetails = {
+              id: quiz._id,
+              title: quiz.name,
+              description: quiz.description,
+              timing: `${formatTime(quiz.startTime)} - ${formatTime(quiz.endTime)}`,
+              date: quizDate, // Include the formatted date
+              totalMarks: 0, // Initialize total marks
+              topics: [], // Initialize topics as an array of topic names
+            };
+      
+            let isValidQuiz = true;
+      
+            // Fetch topic details by populating topic references
+            if (quiz.topics.length === 0) {
+              continue; // Skip quizzes with no topics
+            }
+      
+            for (let topicId of quiz.topics) {
+              const topic = await topicRepository.findById(topicId);
+      
+              if (!topic) {
+                isValidQuiz = false;
+                break;
+              }
+      
+              // Get the number of questions created in the topic
+              const questions = await questionRepository.findByTopicId(topic._id);
+              const requiredQuestions = topic.maxQuestions;
+      
+              // Check if the number of questions meets the maximum allowed
+              if (questions.length < requiredQuestions) {
+                isValidQuiz = false;
+                break;
+              }
+      
+              // Add the topic name to the topics array
+              quizDetails.topics.push(topic.title);
+      
+              // Add the topic's total marks to the quiz's total marks
+              quizDetails.totalMarks += topic.totalMarks;
+            }
+      
+            // Only add the quiz to the result if it's valid
+            if (isValidQuiz) {
+              validLiveQuizzes.push({
+                id: quizDetails.id,
+                title: quizDetails.title,
+                description: quizDetails.description,
+                timing: quizDetails.timing,
+                date: quizDetails.date, // Include the date field
+                totalMarks: quizDetails.totalMarks,
+                topics: quizDetails.topics,
+              });
+            }
+          }
+      
+          console.log("Valid Live Quizzes:", validLiveQuizzes); // Log the valid quizzes
+          return validLiveQuizzes;
+      
+        } catch (error) {
+          console.error("Error fetching live quizzes:", error);
+          throw new ApiError(500, "Error fetching live quizzes", error);
+        }
+      }
+      
+      
+
+    async enrollUser(quizId, user) {
+        try {
+          const quiz = await quizRepository.findById(quizId);
+          if (!quiz) throw new ApiError(404, 'Quiz not found');
+    
+          // Check if the user created the quiz
+          if (quiz.createdBy.toString() === user.id.toString()) {
+            throw new ApiError(403, 'You cannot enroll in a quiz you created');
+          }
+          
+          // Check user account type
+          if (user.role !== 'User') {
+            throw new ApiError(403, 'Only users with an account type of "user" can enroll');
+          }
+    
+          // Check if it's within 1 hour of the quiz's start time
+          const oneHourBeforeStartTime = new Date(quiz.startTime.getTime() - 60 * 60 * 1000);
+          const currentTime = new Date();
+          if (currentTime >= oneHourBeforeStartTime) {
+            throw new ApiError(400, 'You can only enroll in the quiz more than 1 hour before it starts');
+          }
+    
+          // Enroll the user in the quiz
+          const enrolledQuiz = await quizRepository.enrollUser(quizId, user.id);
+          return enrolledQuiz;
+        } catch (error) {
+          throw error;
+        }
+      }
+
+
+     async getAllquiz(user) {
+  try {
+    const currentDate = new Date();
+    const ObjectId = mongoose.Types.ObjectId;
+    const userId = new ObjectId(user.id); // Convert user.id to ObjectId if necessary
+
+    console.log("User ID:", userId); // Log userId to verify
+
+    // Fetch all upcoming quizzes
+    const quizzes = await quizRepository.findAllWithPopulate({
+      startTime: { $gte: currentDate }, // Fetch quizzes that start after the current date
+    });
+
+    // Filter quizzes where the user is enrolled
+    const userQuizzes = quizzes.filter(quiz => 
+      quiz.enrolledUsers.some(user => user.toString() === userId.toString())
+    );
+
+    console.log("User's Enrolled Quizzes:", userQuizzes); // Log the filtered quizzes
+    return userQuizzes;
+  } catch (error) {
+    console.error("Error fetching quizzes:", error);
+  }
+}
+
+      
     
   
     
