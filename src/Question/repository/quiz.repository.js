@@ -1,3 +1,4 @@
+import { ApiError } from "../../../utils/ApiError.js";
 import CrudRepository from "../../../utils/crudClass.js";
 import QuizModel from "../models/quiz.model.js";
 
@@ -7,6 +8,19 @@ class QuizRepository extends CrudRepository {
     super(QuizModel);  
   }
 
+  async findByIdWithPopulate(id, populateOptions) {
+    try {
+      const query = QuizModel.findById(id).populate(populateOptions);
+      const record = await query;
+      if (!record) {
+        throw new ApiError(404, `Quiz with id ${id} not found`);
+      }
+      return record;
+    } catch (error) {
+      console.log(error)
+      throw new ApiError(500, 'Error fetching quiz with populated fields', error);
+    }
+  }
 
   async findAllWithPopulate(filter, populateOptions) {
     try {

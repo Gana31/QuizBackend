@@ -3,6 +3,8 @@ import { ApiError } from "../../../utils/ApiError.js";
 import QuestionRepository from "../repository/question.repository.js";
 import QuizRepository from "../repository/quiz.repository.js";
 import TopicRepository from "../repository/topic.repository.js";
+import TopicModel from "../models/topic.model.js";
+import UserAnswerModel from "../models/userAnswer.model.js";
 
 const quizRepository = new QuizRepository();
 const topicRepository = new TopicRepository();
@@ -143,16 +145,26 @@ class QuizService {
 
     async deleteQuestion(questionId, user) {
         try {
+            // Find the question to ensure it exists and belongs to the user
             const question = await questionRepository.findById(questionId);
             if (!question || !question.createdBy.equals(user.id)) {
                 throw new ApiError(403, 'Unauthorized or Question not found');
             }
-
+    
+            // Remove the question reference from the corresponding topic
+            await TopicModel.findByIdAndUpdate(
+                question.topicId,
+                { $pull: { questions: questionId } }, // Remove the questionId from the questions array
+                { new: true } // Return the updated document
+            );
+    
+            // Delete the question itself
             await questionRepository.delete(questionId);
         } catch (error) {
             throw error;
         }
     }
+    
 
     async getUserPreviousQuizzes(user) {
         try {
@@ -198,11 +210,17 @@ class QuizService {
             const upcomingQuizzes = [];
     
             for (let quiz of quizzes) {
-                // Skip the quiz if the user is already enrolled
-                if (quiz.enrolledUsers.includes(user.id)) {
-                    continue; // User already registered, skip this quiz
-                }
-    
+                // console.log(quiz.enrolledUsers)
+                const isUserEnrolled = quiz.enrolledUsers.some(
+                    (enrollment) =>
+                      enrollment.user.toString() === user.id.toString()
+                  );
+                
+                  // Skip the quiz if the user is already enrolled with quizCompleted false
+                  if (isUserEnrolled) {
+                    continue; // User already registered and quiz not completed, skip this quiz
+                  }
+                
                 // Extract and format the date from startTime
                 const quizDate = formatDate(quiz.startTime);
     
@@ -263,6 +281,7 @@ class QuizService {
     
             return upcomingQuizzes;
         } catch (error) {
+            console.log(error)
             throw new ApiError(500, "Error fetching upcoming quizzes", error);
         }
     }
@@ -272,7 +291,7 @@ class QuizService {
         try {
           const currentDate = new Date();
           const ObjectId = mongoose.Types.ObjectId;
-          const userId = new ObjectId(user.id); // Convert user.id to ObjectId if necessary
+          const userId = user.id; // Convert user.id to ObjectId if necessary
       
         //   console.log("User ID:", userId); // Log userId to verify
       
@@ -283,7 +302,7 @@ class QuizService {
       
           // Filter quizzes where the user is enrolled
           const liveQuizzes = quizzes.filter(quiz =>
-            quiz.enrolledUsers.some(enrolledUser => enrolledUser.toString() === userId.toString())
+            quiz.enrolledUsers.some(enrolledUser => enrolledUser.user.toString() === userId.toString() && enrolledUser.quizCompleted == false)
           );
       
         //   console.log(liveQuizzes)
@@ -349,7 +368,7 @@ class QuizService {
             }
           }
       
-          console.log("Valid Live Quizzes:", validLiveQuizzes); // Log the valid quizzes
+          // console.log("Valid Live Quizzes:", validLiveQuizzes); // Log the valid quizzes
           return validLiveQuizzes;
       
         } catch (error) {
@@ -382,22 +401,32 @@ class QuizService {
             throw new ApiError(400, 'You can only enroll in the quiz more than 1 hour before it starts');
           }
     
-          // Enroll the user in the quiz
-          const enrolledQuiz = await quizRepository.enrollUser(quizId, user.id);
-          return enrolledQuiz;
+          const isEnrolled = quiz.enrolledUsers.some(
+            (enrollment) => enrollment.user.toString() === user.id.toString()
+          );
+    
+          if (isEnrolled) {
+            throw new ApiError(400, 'User is already enrolled in this quiz');
+          }
+    
+          // Enroll the user with `quizCompleted` set to `false`
+          quiz.enrolledUsers.push({ user: user.id, quizCompleted: false });
+          await quiz.save();
+    
+          return quiz;
         } catch (error) {
           throw error;
         }
       }
 
 
-     async getAllquiz(user) {
+    async getAllquiz(user) {
   try {
     const currentDate = new Date();
     const ObjectId = mongoose.Types.ObjectId;
     const userId = new ObjectId(user.id); // Convert user.id to ObjectId if necessary
 
-    console.log("User ID:", userId); // Log userId to verify
+    // console.log("User ID:", userId); // Log userId to verify
 
     // Fetch all upcoming quizzes
     const quizzes = await quizRepository.findAllWithPopulate({
@@ -409,15 +438,14 @@ class QuizService {
       quiz.enrolledUsers.some(user => user.toString() === userId.toString())
     );
 
-    console.log("User's Enrolled Quizzes:", userQuizzes); // Log the filtered quizzes
+    // console.log("User's Enrolled Quizzes:", userQuizzes); // Log the filtered quizzes
     return userQuizzes;
   } catch (error) {
     console.error("Error fetching quizzes:", error);
   }
 }
 
-      
-    
+
   
     
     

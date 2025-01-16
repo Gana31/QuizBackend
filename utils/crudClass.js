@@ -30,9 +30,9 @@ class CrudRepository {
   }
 
   // Find all records
-  async findAll() {
+  async findAll(options={}) {
     try {
-      const records = await this.model.find();
+      const records = await this.model.find(options);
       return records;
     } catch (error) {
       throw new ApiError(500, 'Error fetching all records', error);

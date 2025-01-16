@@ -45,3 +45,11 @@ const parseDuration = (duration) => {
     default: return null; 
   }
 };
+
+
+export const CreateActivationToken = (user1)  =>{
+  const user = {id:user1.id,role:user1.role}
+  const ActivationCode = Math.floor(1000 + Math.random() * 900000).toString();
+  const Token = jwt.sign({user,ActivationCode},ServerConfig.ACCESS_TOKEN_SECRET  , {expiresIn:"5m"})
+  return {Token , ActivationCode}
+}

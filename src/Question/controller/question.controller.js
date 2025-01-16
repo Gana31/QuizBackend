@@ -163,7 +163,7 @@ class QuestionController {
             const user = req.user; // Get the logged-in user
             const liveQuizzes = await QuizService.getLiveQuizzes(user); // Call service to fetch live quizzes
     
-            
+           
             return res.status(200).json(new ApiResponse(200, "Live quizzes fetched successfully", liveQuizzes));
         } catch (error) {
             return next(new ApiError(500, "Error fetching live quizzes", error));
@@ -175,7 +175,7 @@ class QuestionController {
         const user = req.user; // Assume `req.user` contains authenticated user details
     
         if (!quizId) throw new ApiError(400, "Quiz ID is required");
-            console.log(user)
+            // console.log(user)
         const enrolledQuiz = await QuizService.enrollUser(quizId, user);
         res
           .status(200)

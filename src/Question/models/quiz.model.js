@@ -24,8 +24,15 @@ const QuizSchema = new mongoose.Schema(
     },
     enrolledUsers: [
       {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'QuizeUser', // Reference the user model
+        user: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: 'QuizeUser', // Reference the user model
+          required: true,
+        },
+        quizCompleted: {
+          type: Boolean,
+          default: false, // Default value is false
+        },
       },
     ],
     startTime: {

@@ -19,7 +19,7 @@ export const authMiddleware = async (req, res, next) => {
           throw new ApiError(401, "User not found");
         }
 
-        req.user = { id: user._id, role: user.account_type }; // Store user info and role
+        req.user = { id: user._id, role: user.account_type,email:user.email }; // Store user info and role
 
         // Check for the specific role required to access the route
         if (req.requiredRole && req.user.role !== req.requiredRole) {
