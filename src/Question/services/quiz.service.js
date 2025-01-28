@@ -174,6 +174,7 @@ class ExamService {
             selectedOption: question.selectedOption,
             correctAnswer: quizQuestion.correctAnswer,
             userAnswer: quizQuestion.options[question.selectedOption],
+            explanationLink : quizQuestion.explanationLink,
             isCorrect,
           };
         }); // Remove null values if any
@@ -232,7 +233,7 @@ class ExamService {
         })
         .populate({
           path: "topics.questions.questionId",
-          select: "questionTitle options correctAnswer", // Populate question details
+          select: "questionTitle options correctAnswer explanationLink", // Populate question details
         });
   
       if (!userAnswers || userAnswers.length === 0) {
@@ -263,6 +264,7 @@ class ExamService {
                 question: question.questionTitle,
                 options: question.options,
                 userAnswer: userAnswer,
+                explanationLink : question.explanationLink,
                 correctAnswer: question.correctAnswer,
                 isCorrect: question.isCorrect,
               };

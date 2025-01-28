@@ -395,11 +395,11 @@ class QuizService {
           }
     
           // Check if it's within 1 hour of the quiz's start time
-          const oneHourBeforeStartTime = new Date(quiz.startTime.getTime() - 60 * 60 * 1000);
-          const currentTime = new Date();
-          if (currentTime >= oneHourBeforeStartTime) {
-            throw new ApiError(400, 'You can only enroll in the quiz more than 1 hour before it starts');
-          }
+          // const oneHourBeforeStartTime = new Date(quiz.startTime.getTime() - 60 * 60 * 1000);
+          // const currentTime = new Date();
+          // if (currentTime >= oneHourBeforeStartTime) {
+          //   throw new ApiError(400, 'You can only enroll in the quiz more than 1 hour before it starts');
+          // }
     
           const isEnrolled = quiz.enrolledUsers.some(
             (enrollment) => enrollment.user.toString() === user.id.toString()

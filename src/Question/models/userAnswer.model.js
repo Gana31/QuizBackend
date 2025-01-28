@@ -32,6 +32,7 @@ const UserAnswerSchema = new mongoose.Schema(
             selectedOption: Number,
             correctAnswer: String,
             userAnswer: String,
+            explanationLink : String,
             isCorrect: Boolean,
           },
         ],
